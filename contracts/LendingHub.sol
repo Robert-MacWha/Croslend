@@ -40,7 +40,7 @@ contract LendingHub {
     }
 
     function requestWithdraw(uint256 spoke, address user, uint256 amount) external {
-        require(deposits[user] > amount, "Insufficient balance");
+        require(deposits[user] >= amount, "Insufficient balance");
         deposits[user] -= amount;
         
         withdrawSpoke(spoke, amount);
@@ -51,7 +51,7 @@ contract LendingHub {
     }
 
     function requestBorrow(uint256 spoke, address user, uint256 amount) external {
-        require(deposits[user] * 2 >= borrows[user] + amount, "Not enough collateral");
+        require(deposits[user] / 2 >= borrows[user] + amount, "Not enough collateral");
         
         withdrawSpoke(spoke, amount);
         borrows[user] += amount;

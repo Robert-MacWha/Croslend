@@ -10,6 +10,7 @@
     "test": "test"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
     "@openzeppelin/contracts": "^5.0.1",
     "adm-zip": "^0.4.16",
     "agent-base": "^6.0.2",

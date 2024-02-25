@@ -4,8 +4,8 @@ pragma solidity ^0.8.0;
 contract LendingSpoke {
     address crossChainMessageAddr;
 
-    mapping(address => uint256) public approvedBorrows;
     mapping(address => uint256) public approvedWithdraws;
+    mapping(address => uint256) public approvedBorrows;
 
     constructor(address _crossChainMessageAddr) {
         crossChainMessageAddr = _crossChainMessageAddr;
@@ -44,24 +44,26 @@ contract LendingSpoke {
 
     function approveWithdraw(address user, uint256 amount) external {
         require(msg.sender == crossChainMessageAddr, "Only crossChainMessage can call approveWithdraw");
-
-        approvedBorrows[user] = amount;
+        approvedWithdraws[user] = amount;
     }
 
     function approveBorrow(address user, uint256 amount) external {
         require(msg.sender == crossChainMessageAddr, "Only crossChainMessage can call approveBorrow");
-
-        approvedWithdraws[user] = amount;
+        approvedBorrows[user] = amount;
     }
 
     function withdraw() external {
         require(approvedWithdraws[msg.sender] > 0, "No approved withdraws");
-        payable(msg.sender).transfer(approvedWithdraws[msg.sender]);
+        uint256 withdrawAmount = approvedWithdraws[msg.sender];
+        approvedWithdraws[msg.sender] = 0;
+        payable(msg.sender).transfer(withdrawAmount);
     }
 
     function borrow() external {
         require(approvedBorrows[msg.sender] > 0, "No approved borrows");
-        payable(msg.sender).transfer(approvedBorrows[msg.sender]);
+        uint256 borrowAmount = approvedBorrows[msg.sender];
+        approvedBorrows[msg.sender] = 0;
+        payable(msg.sender).transfer(borrowAmount);
     }
 
     function bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount) external {
