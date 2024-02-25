@@ -1,9 +1,12 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
+const { mock } = require("node:test");
 
 describe("LendingSpoke", function () {
   let lendingSpoke;
   let lendingSpokeAddr;
+  let mockERC;
+  let mockERCAddr;
   let owner;
   let crossChainBridge;
   let user1;
@@ -13,18 +16,26 @@ describe("LendingSpoke", function () {
 
   beforeEach(async function () {
     const LendingSpoke = await ethers.getContractFactory("LendingSpoke");
+    const MockERC = await ethers.getContractFactory("MockERC20");
     [owner, crossChainBridge, user1, user2] = await ethers.getSigners();
     depositAmount = ethers.parseEther("1");
-    lendingSpoke = await LendingSpoke.deploy(crossChainBridge);
+
+    mockERC = await MockERC.deploy(user1, depositAmount);
+    await mockERC.waitForDeployment();
+    mockERCAddr = await mockERC.getAddress();
+
+    lendingSpoke = await LendingSpoke.deploy(crossChainBridge, mockERCAddr);
     await lendingSpoke.waitForDeployment();
     lendingSpokeAddr = await lendingSpoke.getAddress();
+
   });
 
   describe("deposit", () => {
     it("should let the user deposit funds", async() => {
-        await lendingSpoke.connect(user1).deposit({ value: depositAmount });
+        await mockERC.connect(user1).approve(lendingSpokeAddr, depositAmount);
 
-        const cBal = await ethers.provider.getBalance(lendingSpokeAddr);
+        await lendingSpoke.connect(user1).deposit(depositAmount);
+        const cBal = await mockERC.balanceOf(lendingSpokeAddr);
 
         expect(cBal).to.equal(depositAmount);
     })
@@ -46,33 +57,35 @@ describe("LendingSpoke", function () {
 
   describe("withdraw", () => {
     it("should let user withdraw funds after approving", async () => {
-        // First, deposit ETH into the contract to ensure it has a balance
-        await lendingSpoke.connect(user1).deposit({ value: depositAmount });
+      // First, deposit ETH into the contract to ensure it has a balance
+      await mockERC.connect(user1).approve(lendingSpokeAddr, depositAmount);
+      await lendingSpoke.connect(user1).deposit(depositAmount);
 
-        // Approve the withdrawal
-        await lendingSpoke.connect(crossChainBridge).approveWithdraw(user1.address, depositAmount);
+      // Approve the withdrawal
+      await lendingSpoke.connect(crossChainBridge).approveWithdraw(user1.address, depositAmount);
         
-        // Attempt to withdraw
-        await lendingSpoke.connect(user1).withdraw();
+      // Attempt to withdraw
+      await lendingSpoke.connect(user1).withdraw();
 
-        expect(await lendingSpoke.approvedWithdraws(user1.address), "withdraws should be 0").to.equal(0);
-        expect(await ethers.provider.getBalance(lendingSpokeAddr), "balance should be 0").to.equal(0);
+      expect(await lendingSpoke.approvedWithdraws(user1.address), "withdraws should be 0").to.equal(0);
+      expect(await mockERC.balanceOf(lendingSpokeAddr), "balance should be 0").to.equal(0);
     });
   });
 
   describe("borrow", () => {
     it("should let user borrow funds after approving", async () => {
-        // First, deposit ETH into the contract to ensure it has a balance
-        await lendingSpoke.connect(user1).deposit({ value: depositAmount });
+      // First, deposit ETH into the contract to ensure it has a balance
+      await mockERC.connect(user1).approve(lendingSpokeAddr, depositAmount);
+      await lendingSpoke.connect(user1).deposit(depositAmount);
 
-        // Approve the borrow
-        await lendingSpoke.connect(crossChainBridge).approveBorrow(user1.address, depositAmount);
+      // Approve the borrow
+      await lendingSpoke.connect(crossChainBridge).approveBorrow(user1.address, depositAmount);
         
-        // Attempt to borrow
-        await lendingSpoke.connect(user1).borrow();
+      // Attempt to borrow
+      await lendingSpoke.connect(user1).borrow();
 
-        expect(await lendingSpoke.approvedBorrows(user1.address), "borrows should be 0").to.equal(0);
-        expect(await ethers.provider.getBalance(lendingSpokeAddr), "balance should be 0").to.equal(0);
+      expect(await lendingSpoke.approvedBorrows(user1.address), "borrows should be 0").to.equal(0);
+      expect(await mockERC.balanceOf(lendingSpokeAddr), "balance should be 0").to.equal(0);
     });
   });
 });
