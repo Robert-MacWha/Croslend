@@ -22,28 +22,6 @@ contract LendingHub {
         emit Deposit(spoke, user, amount, deposits[user]);
     }
 
-    function beginWithdraw(uint256 spoke, address user, uint256 amount) external {
-        require(deposits[user] > amount, "Insufficient balance");
-        deposits[user] -= amount;
-        
-        withdrawSpoke(spoke, amount);
-
-        // TODO: send cross-chain message to allow withdraw on the requesting spoke.
-
-        emit Withdraw(spoke, user, amount, deposits[user]);
-    }
-
-    function beginBorrow(uint256 spoke, address user, uint256 amount) external {
-        require(deposits[user] * 2 >= borrows[user] + amount, "Not enough collateral");
-        
-        withdrawSpoke(spoke, amount);
-        borrows[user] += amount;
-
-        // TODO: send cross-chain message to allow borrow on the requesting spoke.
-
-        emit Borrow(spoke, user, amount);
-    }
-
     // Allows users to repay their borrowed ETH
     // 
     // This doesn't return in a faliure case, so if a user tries to repay more 
@@ -59,6 +37,28 @@ contract LendingHub {
         spokeBalances[spoke] += amount;
 
         emit Repay(spoke, user, amount, borrows[user]);
+    }
+
+    function requestWithdraw(uint256 spoke, address user, uint256 amount) external {
+        require(deposits[user] > amount, "Insufficient balance");
+        deposits[user] -= amount;
+        
+        withdrawSpoke(spoke, amount);
+
+        // TODO: send cross-chain message to allow withdraw on the requesting spoke.
+
+        emit Withdraw(spoke, user, amount, deposits[user]);
+    }
+
+    function requestBorrow(uint256 spoke, address user, uint256 amount) external {
+        require(deposits[user] * 2 >= borrows[user] + amount, "Not enough collateral");
+        
+        withdrawSpoke(spoke, amount);
+        borrows[user] += amount;
+
+        // TODO: send cross-chain message to allow borrow on the requesting spoke.
+
+        emit Borrow(spoke, user, amount);
     }
 
     // withdrawSpoke withdraws an amount from a spoke.  If that spoke can't pay 
