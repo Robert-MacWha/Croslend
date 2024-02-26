@@ -191,6 +191,8 @@ contract LendingHub is IWormholeReceiver{
 
             // transfer the transferAmount from the target spoke to the destination spoke
             deltaSpokeValue -= transferAmount;
+
+            sendBridgeRequest(tSpoke, dSpoke, transferAmount);
         }
     }
 
