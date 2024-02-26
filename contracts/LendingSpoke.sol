@@ -1,8 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
+import "./BridgeERC20.sol";
 import "./IWormholeRelayer.sol";
 import "./IWormholeReceiver.sol";
 
@@ -15,13 +14,13 @@ contract LendingSpoke is IWormholeReceiver {
 
 
     address crossChainMessageAddr;
-    IERC20 public token;
+    BridgeERC20 public token;
 
     mapping(address => uint256) public approvedWithdraws;
     mapping(address => uint256) public approvedBorrows;
 
     constructor(address _tokenAddr, address _wormholeRelayer, uint16 _spokeChainID, uint16 _hubChainID, address _hubAddress) {
-        token = IERC20(_tokenAddr);
+        token = BridgeERC20(_tokenAddr);
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
         spokeChainID = _spokeChainID;
         hubChainID = _hubChainID;
@@ -143,8 +142,27 @@ contract LendingSpoke is IWormholeReceiver {
         approvedBorrows[user] = amount;
     }
 
-    function bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount) internal {
-        // TODO: Bridge amount to spokeAdd on chain spokeID
+    function bridgeToSpoke(uint16 spokeID, address spokeAddr, uint256 amount) internal {
+        token.burn(amount);
+
+        uint256 cost = quoteCrossChainCost(spokeID);
+
+        // Info payload is the bytes of the information that's actually valuable
+        bytes memory infoPayload = abi.encode(amount);
+        // Main payload just contains which function to call
+        bytes memory mainPayload = abi.encode("receiveTokens", infoPayload);
+
+        wormholeRelayer.sendPayloadToEvm{value: cost}(
+            spokeID,
+            spokeAddr,
+            mainPayload,
+            0,
+            GAS_LIMIT
+        );
+    }
+
+    function receiveTokens(uint256 amount) internal {
+        token.mint(address(this), amount);
     }
 
     function receiveWormholeMessages(
@@ -165,8 +183,11 @@ contract LendingSpoke is IWormholeReceiver {
             (address user, uint256 amount) = abi.decode(infoPayload, (address, uint256));
             approveBorrow(user, amount);
         } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("bridgeToSpoke"))) {
-            (uint256 spokeID, address spokeAddr, uint256 amount) = abi.decode(infoPayload, (uint256, address, uint256));
+            (uint16 spokeID, address spokeAddr, uint256 amount) = abi.decode(infoPayload, (uint16, address, uint256));
             bridgeToSpoke(spokeID, spokeAddr, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("receiveTokens"))) {
+            (uint256 amount) = abi.decode(infoPayload, (uint256));
+            receiveTokens(amount);
         }
     }
 }
