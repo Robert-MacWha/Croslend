@@ -3,6 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import "./IWormholeRelayer.sol";
+import "./IWormholeReceiver.sol";
+
 contract LendingSpoke is IWormholeReceiver {
     uint256 constant GAS_LIMIT = 500_000;
     IWormholeRelayer public immutable wormholeRelayer;
@@ -17,12 +20,12 @@ contract LendingSpoke is IWormholeReceiver {
     mapping(address => uint256) public approvedWithdraws;
     mapping(address => uint256) public approvedBorrows;
 
-    constructor(address _tokenAddr, address _wormholeRelayer, uint16 spokeChainID, uint16 hubChainID, address hubAddress) {
+    constructor(address _tokenAddr, address _wormholeRelayer, uint16 _spokeChainID, uint16 _hubChainID, address _hubAddress) {
         token = IERC20(_tokenAddr);
         wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
-        spokeChainID = spokeChainID;
-        hubChainID = hubChainID;
-        hubAddress = hubAddress;
+        spokeChainID = _spokeChainID;
+        hubChainID = _hubChainID;
+        hubAddress = _hubAddress;
     }
 
     function quoteCrossChainCost(
@@ -42,10 +45,12 @@ contract LendingSpoke is IWormholeReceiver {
 
         require(token.transferFrom(user, address(this), amount), "Transfer failed");
 
+        uint256 cost = quoteCrossChainCost(hubChainID);
+
         // Info payload is the bytes of the information that's actually valuable
-        infoPayload = abi.encode(spokeChainID, user, amount);
+        bytes memory infoPayload = abi.encode(spokeChainID, user, amount);
         // Main payload just contains which function to call
-        mainPayload = abi.encode("deposit", infoPayload);
+        bytes memory mainPayload = abi.encode("deposit", infoPayload);
         
         wormholeRelayer.sendPayloadToEvm{value: cost}(
             hubChainID,
@@ -62,10 +67,12 @@ contract LendingSpoke is IWormholeReceiver {
 
         require(token.transferFrom(user, address(this), amount), "Transfer failed");
 
+        uint256 cost = quoteCrossChainCost(hubChainID);
+
         // Info payload is the bytes of the information that's actually valuable
-        infoPayload = abi.encode(spokeChainID, user, amount);
+        bytes memory infoPayload = abi.encode(spokeChainID, user, amount);
         // Main payload just contains which function to call
-        mainPayload = abi.encode("repayBorrow", infoPayload);
+        bytes memory mainPayload = abi.encode("repayBorrow", infoPayload);
 
         wormholeRelayer.sendPayloadToEvm{value: cost}(
             hubChainID,
@@ -80,10 +87,12 @@ contract LendingSpoke is IWormholeReceiver {
     function requestWithdraw(uint256 amount) external {
         address user = msg.sender;
 
+        uint256 cost = quoteCrossChainCost(hubChainID);
+
         // Info payload is the bytes of the information that's actually valuable
-        infoPayload = abi.encode(spokeChainID, user, amount);
+        bytes memory infoPayload = abi.encode(spokeChainID, user, amount);
         // Main payload just contains which function to call
-        mainPayload = abi.encode("requestWithdraw", infoPayload);
+        bytes memory mainPayload = abi.encode("requestWithdraw", infoPayload);
 
         wormholeRelayer.sendPayloadToEvm{value: cost}(
             hubChainID,
@@ -98,10 +107,12 @@ contract LendingSpoke is IWormholeReceiver {
     function requestBorrow(uint256 amount) external {
         address user = msg.sender;
 
+        uint256 cost = quoteCrossChainCost(hubChainID);
+
         // Info payload is the bytes of the information that's actually valuable
-        infoPayload = abi.encode(spokeChainID, user, amount);
+        bytes memory infoPayload = abi.encode(spokeChainID, user, amount);
         // Main payload just contains which function to call
-        mainPayload = abi.encode("requestBorrow", infoPayload);
+        bytes memory mainPayload = abi.encode("requestBorrow", infoPayload);
 
         wormholeRelayer.sendPayloadToEvm{value: cost}(
             hubChainID,
@@ -140,5 +151,15 @@ contract LendingSpoke is IWormholeReceiver {
         require(msg.sender == crossChainMessageAddr, "Only crossChainMessage can call bridgeToSpoke");
 
         // TODO: Bridge amount to spokeAdd on chain spokeID
+    }
+
+    function receiveWormholeMessages(
+        bytes memory payload,
+        bytes[] memory, // additionalVaas
+        bytes32, // address that called 'sendPayloadToEvm' (HelloWormhole contract address)
+        uint16 sourceChain,
+        bytes32 // unique identifier of delivery
+    ) public payable override {
+        // TODO
     }
 }
