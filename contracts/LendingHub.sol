@@ -114,8 +114,8 @@ contract LendingHub is IWormholeReceiver{
     function receiveWormholeMessages(
         bytes memory payload,
         bytes[] memory, // additionalVaas
-        bytes32, // address that called 'sendPayloadToEvm' (HelloWormhole contract address)
-        uint16 sourceChain,
+        bytes32, // address that called 'sendPayloadToEvm'
+        uint16, // spoke
         bytes32 // unique identifier of delivery
     ) public payable override {
         require(msg.sender == address(wormholeRelayer), "Only relayer allowed");
