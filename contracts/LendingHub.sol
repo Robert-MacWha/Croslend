@@ -1,7 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-contract LendingHub {
+contract LendingHub is IWormholeReceiver {
+    uint256 constant GAS_LIMIT = 500_000;
+    IWormholeRelayer public immutable wormholeRelayer;
+    uint16 hubChainID;
+
     // mapping of borrowers and depositers, and the amounts they borrowed / deposited
     mapping(address => uint256) public deposits;
     mapping(address => uint256) public borrows;
@@ -15,7 +19,12 @@ contract LendingHub {
     event Borrow(uint256 spoke, address user, uint256 amount);
     event Repay(uint256 spoke, address user, uint256 amount, uint256 remaining);
 
-    function deposit(uint256 spoke, address user, uint256 amount) external {
+    constructor(address _wormholeRelayer, uint16 _hubChainID) {
+        wormholeRelayer = IWormholeRelayer(_wormholeRelayer);
+        hubChainID = _hubChainID;
+    }
+
+    function deposit(uint256 spoke, address user, uint256 amount) internal {
         deposits[user] += amount;
         spokeBalances[spoke] += amount;
 
@@ -27,7 +36,7 @@ contract LendingHub {
     // This doesn't return in a faliure case, so if a user tries to repay more 
     // than they owe or if they don't have any outstanding borrows, their funds
     // will be locked in the contract.
-    function repayBorrow(uint256 spoke, address user, uint256 amount) external {
+    function repayBorrow(uint256 spoke, address user, uint256 amount) internal {
         uint256 borrowedAmount = borrows[user];
 
         require(borrowedAmount > 0, "No outstanding borrow");
@@ -39,7 +48,7 @@ contract LendingHub {
         emit Repay(spoke, user, amount, borrows[user]);
     }
 
-    function requestWithdraw(uint256 spoke, address user, uint256 amount) external {
+    function requestWithdraw(uint256 spoke, address user, uint256 amount) internal {
         require(deposits[user] >= amount, "Insufficient balance");
         deposits[user] -= amount;
         
@@ -50,7 +59,7 @@ contract LendingHub {
         emit Withdraw(spoke, user, amount, deposits[user]);
     }
 
-    function requestBorrow(uint256 spoke, address user, uint256 amount) external {
+    function requestBorrow(uint256 spoke, address user, uint256 amount) internal {
         require(deposits[user] / 2 >= borrows[user] + amount, "Not enough collateral");
         
         withdrawSpoke(spoke, amount);
@@ -59,6 +68,48 @@ contract LendingHub {
         // TODO: send cross-chain message to allow borrow on the requesting spoke.
 
         emit Borrow(spoke, user, amount);
+    }
+
+    function receiveWormholeMessages(
+        bytes memory payload,
+        bytes[] memory, // additionalVaas
+        bytes32, // address that called 'sendPayloadToEvm' (HelloWormhole contract address)
+        uint16 sourceChain,
+        bytes32 // unique identifier of delivery
+    ) public payable override {
+        require(msg.sender == address(wormholeRelayer), "Only relayer allowed");
+
+        // Parse the payload and do the corresponding actions!
+        (string memory functionName, bytes memory infoPayload) = abi.decode(
+            payload,
+            (string, bytes)
+        );
+
+        if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("deposit"))) {
+            (uint256 spoke, address user, uint256 amount) = abi.decode(
+                infoPayload,
+                (uint256, address, uint256)
+            );
+            deposit(spoke, user, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("repayBorrow"))) {
+            (uint256 spoke, address user, uint256 amount) = abi.decode(
+                infoPayload,
+                (uint256, address, uint256)
+            );
+            repayBorrow(spoke, user, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("requestWithdraw"))) {
+            (uint256 spoke, address user, uint256 amount) = abi.decode(
+                infoPayload,
+                (uint256, address, uint256)
+            );
+            requestWithdraw(spoke, user, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("requestBorrow"))) {
+            (uint256 spoke, address user, uint256 amount) = abi.decode(
+                infoPayload,
+                (uint256, address, uint256)
+            );
+            requestBorrow(spoke, user, amount);
+        }
     }
 
     // withdrawSpoke withdraws an amount from a spoke.  If that spoke can't pay 
