@@ -62,7 +62,6 @@ contract LendingHub is IWormholeReceiver{
         emit Repay(spoke, user, amount, borrows[user]);
     }
 
-    // approveWithdraw(address user, uint256 amount)
     function requestWithdraw(uint16 spoke, address user, uint256 amount) internal {
         require(deposits[user] >= amount, "Insufficient balance");
         deposits[user] -= amount;
@@ -88,7 +87,6 @@ contract LendingHub is IWormholeReceiver{
         emit Withdraw(spoke, user, amount, deposits[user]);
     }
 
-    // approveBorrow(address user, uint256 amount)
     function requestBorrow(uint16 spoke, address user, uint256 amount) internal {
         require(deposits[user] / 2 >= borrows[user] + amount, "Not enough collateral");
         
@@ -196,14 +194,12 @@ contract LendingHub is IWormholeReceiver{
         }
     }
 
-    //bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount)
     function sendBridgeRequest(uint16 tSpoke, uint16 dSpoke, uint256 amount) internal {
         require(spokeBalances[tSpoke] >= amount, "Insufficient balance");
 
         spokeBalances[tSpoke] -= amount;
         spokeBalances[dSpoke] += amount;
 
-        // TODO: send the request to tSpoke to bridge the tokens to tSpoke
 
         // Info payload is the bytes of the information that's actually valuable
         bytes memory infoPayload = abi.encode(dSpoke, spokeAddresses[dSpoke], amount);

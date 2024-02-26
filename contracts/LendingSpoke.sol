@@ -38,7 +38,6 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
-    // deposit(uint256 spoke, address user, uint256 amount)
     // Allows users to deposit ETH into the contract
     function deposit(uint256 amount) external {
         address user = msg.sender;
@@ -61,7 +60,6 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
-    // repayBorrow(uint256 spoke, address user, uint256 amount)
     function repayBorrow(uint256 amount) external {
         address user = msg.sender;
 
@@ -83,7 +81,6 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
-    // requestWithdraw(uint256 spoke, address user, uint256 amount)
     function requestWithdraw(uint256 amount) external {
         address user = msg.sender;
 
@@ -103,7 +100,6 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
-    // requestBorrow(uint256 spoke, address user, uint256 amount)
     function requestBorrow(uint256 amount) external {
         address user = msg.sender;
 
