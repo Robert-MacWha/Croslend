@@ -123,6 +123,21 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
+    function withdraw() external {
+        require(approvedWithdraws[msg.sender] > 0, "No approved withdraws");
+        uint256 withdrawAmount = approvedWithdraws[msg.sender];
+        approvedWithdraws[msg.sender] = 0;
+        
+        token.transfer(msg.sender, withdrawAmount);
+    }
+
+    function borrow() external {
+        require(approvedBorrows[msg.sender] > 0, "No approved borrows");
+        uint256 borrowAmount = approvedBorrows[msg.sender];
+        approvedBorrows[msg.sender] = 0;
+        token.transfer(msg.sender, borrowAmount);
+    }
+
     
     function approveWithdraw(address user, uint256 amount) internal {
         approvedWithdraws[user] = amount;
@@ -132,24 +147,7 @@ contract LendingSpoke is IWormholeReceiver {
         approvedBorrows[user] = amount;
     }
 
-    function withdraw() internal {
-        require(approvedWithdraws[msg.sender] > 0, "No approved withdraws");
-        uint256 withdrawAmount = approvedWithdraws[msg.sender];
-        approvedWithdraws[msg.sender] = 0;
-        
-        token.transfer(msg.sender, withdrawAmount);
-    }
-
-    function borrow() internal {
-        require(approvedBorrows[msg.sender] > 0, "No approved borrows");
-        uint256 borrowAmount = approvedBorrows[msg.sender];
-        approvedBorrows[msg.sender] = 0;
-        token.transfer(msg.sender, borrowAmount);
-    }
-
-    function bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount) external {
-        require(msg.sender == crossChainMessageAddr, "Only crossChainMessage can call bridgeToSpoke");
-
+    function bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount) internal {
         // TODO: Bridge amount to spokeAdd on chain spokeID
     }
 
@@ -160,6 +158,19 @@ contract LendingSpoke is IWormholeReceiver {
         uint16 sourceChain,
         bytes32 // unique identifier of delivery
     ) public payable override {
-        // TODO
+        require(msg.sender == address(wormholeRelayer), "Only relayer allowed");
+
+        (string memory functionName, bytes memory infoPayload) = abi.decode(payload, (string, bytes));
+
+        if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("approveWithdraw"))) {
+            (address user, uint256 amount) = abi.decode(infoPayload, (address, uint256));
+            approveWithdraw(user, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("approveBorrow"))) {
+            (address user, uint256 amount) = abi.decode(infoPayload, (address, uint256));
+            approveBorrow(user, amount);
+        } else if (keccak256(abi.encodePacked(functionName)) == keccak256(abi.encodePacked("bridgeToSpoke"))) {
+            (uint256 spokeID, address spokeAddr, uint256 amount) = abi.decode(infoPayload, (uint256, address, uint256));
+            bridgeToSpoke(spokeID, spokeAddr, amount);
+        }
     }
 }

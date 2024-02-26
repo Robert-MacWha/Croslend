@@ -88,13 +88,27 @@ contract LendingHub is IWormholeReceiver{
         emit Withdraw(spoke, user, amount, deposits[user]);
     }
 
+    // approveBorrow(address user, uint256 amount)
     function requestBorrow(uint16 spoke, address user, uint256 amount) internal {
         require(deposits[user] / 2 >= borrows[user] + amount, "Not enough collateral");
         
         withdrawSpoke(spoke, amount);
         borrows[user] += amount;
 
-        // TODO: send cross-chain message to allow borrow on the requesting spoke.
+        // Info payload is the bytes of the information that's actually valuable
+        bytes memory infoPayload = abi.encode(user, amount);
+        // Main payload just contains which function to call
+        bytes memory mainPayload = abi.encode("approveBorrow", infoPayload);
+
+        uint256 cost = quoteCrossChainCost(spoke);
+
+        wormholeRelayer.sendPayloadToEvm{value: cost}(
+            spoke,
+            spokeAddresses[spoke],
+            mainPayload,
+            0,
+            GAS_LIMIT
+        );
 
         emit Borrow(spoke, user, amount);
     }
@@ -182,6 +196,7 @@ contract LendingHub is IWormholeReceiver{
         }
     }
 
+    //bridgeToSpoke(uint256 spokeID, address spokeAddr, uint256 amount)
     function sendBridgeRequest(uint16 tSpoke, uint16 dSpoke, uint256 amount) internal {
         require(spokeBalances[tSpoke] >= amount, "Insufficient balance");
 
@@ -189,6 +204,21 @@ contract LendingHub is IWormholeReceiver{
         spokeBalances[dSpoke] += amount;
 
         // TODO: send the request to tSpoke to bridge the tokens to tSpoke
+
+        // Info payload is the bytes of the information that's actually valuable
+        bytes memory infoPayload = abi.encode(dSpoke, spokeAddresses[dSpoke], amount);
+        // Main payload just contains which function to call
+        bytes memory mainPayload = abi.encode("bridgeToSpoke", infoPayload);
+
+        uint256 cost = quoteCrossChainCost(tSpoke);
+
+        wormholeRelayer.sendPayloadToEvm{value: cost}(
+            tSpoke,
+            spokeAddresses[tSpoke],
+            mainPayload,
+            0,
+            GAS_LIMIT
+        );
     }
 
     function addSpoke(uint16 spoke, address spokeAddress) internal {
