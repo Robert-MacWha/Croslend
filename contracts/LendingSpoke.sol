@@ -6,7 +6,7 @@ import "./IWormholeRelayer.sol";
 import "./IWormholeReceiver.sol";
 
 contract LendingSpoke is IWormholeReceiver {
-    uint256 constant GAS_LIMIT = 500_000;
+    uint256 constant GAS_LIMIT = 100_000;
     IWormholeRelayer public immutable wormholeRelayer;
     uint16 spokeChainID;
     uint16 hubChainID;
@@ -189,5 +189,11 @@ contract LendingSpoke is IWormholeReceiver {
             (uint256 amount) = abi.decode(infoPayload, (uint256));
             receiveTokens(amount);
         }
+    }
+
+    receive() external payable {}
+
+    function sendEth(address payable recipient, uint256 amount) external {
+        recipient.transfer(amount);
     }
 }

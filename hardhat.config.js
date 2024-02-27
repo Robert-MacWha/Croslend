@@ -5,7 +5,7 @@
 require('dotenv').config();
 require("@nomiclabs/hardhat-ethers");
 
-const { API_URL_SEPOLIA, API_URL_MUMBAI, API_URL_FUJI, API_URL_ALFAJORES, PRIVATE_KEY } = process.env;
+const { API_URL_SEPOLIA, API_URL_MUMBAI, API_URL_FUJI, API_URL_ALFAJORES, API_URL_ARBITRUM_SEPOLIA, PRIVATE_KEY } = process.env;
 
 module.exports = {
   solidity: "0.8.24",
@@ -27,6 +27,10 @@ module.exports = {
     alfajores: {
       url: API_URL_ALFAJORES,
       accounts: [`0x${PRIVATE_KEY}`]
-    }
+    },
+    arbitrum_sepolia: {
+      url: API_URL_ARBITRUM_SEPOLIA,
+      accounts: [`0x${PRIVATE_KEY}`],
+    },
   },
 }

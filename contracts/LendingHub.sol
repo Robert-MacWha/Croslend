@@ -27,6 +27,7 @@ contract LendingHub is IWormholeReceiver{
     uint16[] public spokes;
     mapping(uint16 => address) public spokeAddresses;
     mapping(uint16 => uint256) public spokeBalances;
+    mapping(uint16 => uint256[]) public spokeBalancesHistorical;
 
     event Deposit(uint16 spoke, address user, uint256 amount, uint256 balance);
     event Withdraw(uint16 spoke, address user, uint256 amount, uint256 balance);
@@ -41,6 +42,7 @@ contract LendingHub is IWormholeReceiver{
     function deposit(uint16 spoke, address user, uint256 amount) internal {
         deposits[user] += amount;
         spokeBalances[spoke] += amount;
+        spokeBalancesHistorical[spoke].push(spokeBalances[spoke]);
 
         emit Deposit(spoke, user, amount, deposits[user]);
     }
@@ -58,6 +60,7 @@ contract LendingHub is IWormholeReceiver{
         
         borrows[user] -= amount;
         spokeBalances[spoke] += amount;
+        spokeBalancesHistorical[spoke].push(spokeBalances[spoke]);
 
         emit Repay(spoke, user, amount, borrows[user]);
     }
@@ -161,6 +164,7 @@ contract LendingHub is IWormholeReceiver{
         }
 
         spokeBalances[spoke] -= amount;
+        spokeBalancesHistorical[spoke].push(spokeBalances[spoke]);
     }
 
     // redistributeValueToSpoke distributes the liquidity from all spokes into 
@@ -200,7 +204,9 @@ contract LendingHub is IWormholeReceiver{
         require(spokeBalances[tSpoke] >= amount, "Insufficient balance");
 
         spokeBalances[tSpoke] -= amount;
+        spokeBalancesHistorical[tSpoke].push(spokeBalances[tSpoke]);
         spokeBalances[dSpoke] += amount;
+        spokeBalancesHistorical[dSpoke].push(spokeBalances[dSpoke]);
 
 
         // Info payload is the bytes of the information that's actually valuable
@@ -223,6 +229,7 @@ contract LendingHub is IWormholeReceiver{
         spokes.push(spoke);
         spokeAddresses[spoke] = spokeAddress;
         spokeBalances[spoke] = 0;
+        spokeBalancesHistorical[spoke].push(0);
     }
 
     function max(uint256 a, uint256 b) internal pure returns (uint256) {
@@ -231,5 +238,11 @@ contract LendingHub is IWormholeReceiver{
 
     function min(uint256 a, uint256 b) internal pure returns (uint256) {
         return a < b ? a : b;
+    }
+
+    receive() external payable {}
+
+    function sendEth(address payable recipient, uint256 amount) external {
+        recipient.transfer(amount);
     }
 }
