@@ -5,7 +5,7 @@ import "./IWormholeRelayer.sol";
 import "./IWormholeReceiver.sol";
 
 contract LendingHub is IWormholeReceiver{
-    uint256 constant GAS_LIMIT = 500_000;
+    uint256 constant GAS_LIMIT = 100_000;
     IWormholeRelayer public immutable wormholeRelayer;
     uint16 hubChainID;
 

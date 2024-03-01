@@ -21,15 +21,15 @@ async function main() {
 
     var hubInfo = deployedContracts.hub;
     var hubChainID = hubInfo[0];
-    var hubAddress = hubInfo[1];
 
-    const signer = (await hre.ethers.getSigners())[0];
+    const spokeContract = await hre.ethers.getContractAt("LendingSpoke", deployedContracts.spoke[chainID]);
 
-    var transaction = await signer.sendTransaction({
-        to: hubAddress,
-        value: hre.ethers.utils.parseEther("0.02")
-    });
-    await transaction.wait();
+    const cost = await spokeContract.quoteCrossChainCost(hubChainID);
+    console.log("Cost to cross chain:", cost.toString());
+
+    txn = await spokeContract.borrow(10000000000000000000n);
+    await txn.wait();
+    console.log("Requesting Borrow of 10 tokens at", txn.hash)
 }
 
 main().catch((error) => {

@@ -133,15 +133,20 @@ contract LendingSpoke is IWormholeReceiver {
         token.transfer(msg.sender, borrowAmount);
     }
 
-    
+    event apporveWithdrawEvent(address user, uint256 amount);
     function approveWithdraw(address user, uint256 amount) internal {
         approvedWithdraws[user] = amount;
+        emit apporveWithdrawEvent(user, amount);
     }
 
+    event apporveBorrowEvent(address user, uint256 amount);
     function approveBorrow(address user, uint256 amount) internal {
         approvedBorrows[user] = amount;
+
+        emit apporveBorrowEvent(user, amount);
     }
 
+    event bridgeToSpokeEvent(uint16 spokeID, address spokeAddr, uint256 amount);
     function bridgeToSpoke(uint16 spokeID, address spokeAddr, uint256 amount) internal {
         token.burn(amount);
 
@@ -159,10 +164,15 @@ contract LendingSpoke is IWormholeReceiver {
             0,
             GAS_LIMIT
         );
+
+        emit bridgeToSpokeEvent(spokeID, spokeAddr, amount);
     }
 
+    event receiveTokensEvent(uint256 amount);
     function receiveTokens(uint256 amount) internal {
         token.mint(address(this), amount);
+
+        emit receiveTokensEvent(amount);
     }
 
     function receiveWormholeMessages(
@@ -196,4 +206,5 @@ contract LendingSpoke is IWormholeReceiver {
     function sendEth(address payable recipient, uint256 amount) external {
         recipient.transfer(amount);
     }
+
 }

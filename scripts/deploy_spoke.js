@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 async function main() {
-    const chainID = 10003;
+    const chainID = 16;
 
     const configPath = "./wormhole_config.json";
     const configData = fs.readFileSync(configPath, "utf8");
@@ -39,7 +39,7 @@ async function main() {
 
     var transaction = await signer.sendTransaction({
         to: spoke.address,
-        value: hre.ethers.utils.parseEther("0.02")
+        value: hre.ethers.utils.parseEther("0.05")
     });
     await transaction.wait();
 

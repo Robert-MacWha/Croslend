@@ -25,26 +25,20 @@ async function main() {
 
     const signer = (await hre.ethers.getSigners())[0];
 
-    // const tokenContract = await hre.ethers.getContractAt("BridgeERC20", deployedContracts.tokens[chainID]);
-    // txn = await tokenContract.approve(deployedContracts.spoke[chainID], 10);
-    // await txn.wait();
-    // console.log("Approved Spoke to spend 10 tokens at", txn.hash)
+    const tokenContract = await hre.ethers.getContractAt("BridgeERC20", deployedContracts.tokens[chainID]);
+    txn = await tokenContract.approve(deployedContracts.spoke[chainID], 100000000000000000000n);
+    await txn.wait();
+    console.log("Approved Spoke to spend 100 tokens at", txn.hash)
 
 
     const spokeContract = await hre.ethers.getContractAt("LendingSpoke", deployedContracts.spoke[chainID]);
 
-    var transaction = await signer.sendTransaction({
-        to: spokeContract.address,
-        value: hre.ethers.utils.parseEther("0.04")
-    });
-    await transaction.wait();
-
     const cost = await spokeContract.quoteCrossChainCost(hubChainID);
     console.log("Cost to cross chain:", cost.toString());
 
-    txn = await spokeContract.deposit(1);
+    txn = await spokeContract.deposit(100000000000000000000n);
     await txn.wait();
-    console.log("Deposited 10 tokens at", txn.hash)
+    console.log("Deposited 100 tokens at", txn.hash)
 
 
 }

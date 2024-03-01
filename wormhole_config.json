@@ -86,5 +86,13 @@
     "tokenBridge": "0x86F55A04690fd7815A3D802bD587e83eA888B239",
     "wormholeRelayer": "0x93BAD53DDfB6132b0aC8E37f6029163E63372cEE",
     "wormhole": "0x79A1027a6A159502049F10906D333EC57E95F083"
+  },
+  {
+    "description": "oasis",
+    "chainId": 7,
+    "rpc": "https://testnet.emerald.oasis.dev",
+    "tokenBridge": "0x88d8004A9BdbfD9D28090A02010C19897a29605c",
+    "wormholeRelayer": "0x28D8F1Be96f97C1387e94A53e00eCcFb4E75175a",
+    "wormhole": "0xc1C338397ffA53a2Eb12A7038b4eeb34791F8aCb"
   }
 ]
