@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Croslend</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="overlay"></div>
+
+    <div class="container">
+        <div class="mt-5"></div>
+
+        <h1>Croslend</h1>
+        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Repudiandae provident cum natus mollitia, tempore
+            perspiciatis minima? Ex consequatur fugit perferendis atque veniam expedita maxime! Dicta?</p>
+        <div class="actions d-flex">
+            <button onClick="showDeposit()" class="btn btn-secondary me-3">Deposit</button>
+            <button onClick="showWithdraw()" class="btn btn-secondary me-3">Withdraw</button>
+            <button onClick="showBorrow()" class="btn btn-secondary me-3">Borrow</button>
+            <button onClick="showRepay()" class="btn btn-secondary me-3">Repay</button>
+        </div>
+        <div class="mb-5"></div>
+
+        <div class="row">
+            <div class="col-12-lg col-xl-8">
+                <h3 class="mb-3">Liquidity History</h3>
+                <div class="chart mb-4">
+                    <canvas id="liquidity-chart"></canvas>
+                </div>
+            </div>
+            <div class="col-12-lg col-xl-4">
+                <h3 class="mb-3">Chain Stats</h3>
+                <div class="row justify-content-center" id="chains"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="act shadow rounded p-4 pt-5" id="act">
+        <button class="btn" onClick="return hideAct()" id="close">X</button>
+
+        <h5 class="mb-3" id="action">Deposit</h5>
+        <form>
+            <div class="mb-3">
+                <label for="amount">Amount</label>
+                <input type="number" class="form-control" id="amount" placeholder="100">
+            </div>
+            <div class="mb-3">
+                <label for="chains-dropdown">Chain</label>
+                <select class="form-select" id="chains-dropdown">
+
+                </select>
+            </div>
+            <div class="d-grid mb-3">
+                <button class="btn btn-primary" id="execute-btn" onClick="">Execute</button>
+            </div>
+        </form>
+    </div>
+
+    <script type="text/template" id="chain-template">
+        <div class="col-auto card shadow mx-3 mb-4" id="{{name}}">
+            <div class="card-body px-2 py-3">
+                <div class="card-title mb-3 d-flex align-items-center">
+                    <div class="underline" style="--color: {{color}}"></div>
+                    <img src="{{logo}}" class="me-2">
+                    <h5 class="card-title mb-0">{{name}}</h5>
+                </div>
+                <p class="mb-1"><span class="text-success fw-bold">Deposited:</span> <span id="deposit">100</span></p>
+                <p class="mb-1"><span class="text-danger fw-bold">Borrowed:</span> <span id="withdraw">200</span></p>
+            </div>
+        </div>    
+    </script>
+
+    <script type="text/template" id="chain-dropdown-template">
+        <option value="{{id}}">{{name}}</option>
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/web3/4.5.0/web3.min.js"
+        integrity="sha512-FhAl50BpK3gf9K//lbAWek9EEQEtGQyyXZNc1fuwcC2tVf2cskiJBcumXY0zJksYtms6S5cqubp1MNfUYTkO2A=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+
+    <script src="index.js"></script>
+</body>
+
+</html>
