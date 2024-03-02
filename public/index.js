@@ -1,49 +1,72 @@
 // https://altcoinsbox.com
 // https://chainlist.org
-const chains = [
-    {
-        name: "Arbitrum Test",
-        logo: "img/arbitrum.svg",
-        color: "rgb(50, 60, 100)",
-        chainID: 421614,
-        rpc: "https://arbitrum-sepolia.blockpi.network/v1/rpc/public",
-        symbol: "ETH",
-    }, {
-        name: "Base Test",
+const chains = [{
+        name: "Base Sepolia",
         logo: "img/base.svg",
         color: "rgb(0, 0, 255)",
         chainID: 84532,
         rpc: "https://base-sepolia.blockpi.network/v1/rpc/public",
-        symbol: "ETH",
+        wormholeID: 10004,
     }, {
-        name: "Linea Test",
-        logo: "img/linea.svg",
-        color: "rgb(50, 200, 255)",
-        chainID: 59140,
-        rpc: "https://rpc.goerli.linea.build",
-        symbol: "ETH",
-    },
+        name: "Arbitrum Goreli",
+        logo: "img/arbitrum.svg",
+        color: "rgb(50, 60, 150)",
+        chainID: 421614,
+        rpc: "https://arbitrum-goerli.publicnode.com",
+        wormholeID: 23,
+    }, {
+        name: "Moonbase",
+        logo: "img/moonbase.svg",
+        color: "rgb(200, 50, 200)",
+        chainID: 0,
+        rpc: "https://rpc.testnet.moonbeam.network",
+        wormholeID: 16,
+    }, {
+        name: "Oasis Test",
+        logo: "img/oasis.svg",
+        color: "rgb(150, 200, 250)",
+        chainID: 0,
+        rpc: "https://testnet.emerald.oasis.dev",
+        wormholeID: 7,
+    }
+    // }, {
+    //     name: "Linea Test",
+    //     logo: "img/linea.svg",
+    //     color: "rgb(50, 200, 255)",
+    //     chainID: 59140,
+    //     rpc: "https://rpc.goerli.linea.build",
+    //     symbol: "ETH",
+    // },
 ]
 
-const web3 = new Web3(window.ethereum);
+const INFURA_KEY = "b98c4b03a2754e80beac8bc5911777bd"
+const HUB_CHAINID = 421614
+const INFURA_URL = "https://arbitrum-sepolia.infura.io/v3/" + INFURA_KEY
+const HUB_ADDRESS = "0xcA8a5E83E0D96C8Da506d1F7412fae0248021B98"
 
-$(document).ready(() => {
+const web3 = new Web3(window.ethereum);
+const infura_web3 = new Web3(new Web3.providers.HttpProvider(INFURA_URL))
+
+$(document).ready(async function() {
     if (typeof window.ethereum === 'undefined') {
         alert("A wallet is required for this application.  Try installing metamask.")
     }
 
-    loadChains(chains);
+    await loadChains(chains);
 
     const [labels, liquidities] = loadChainLiquidities()
     loadChart(labels, liquidities);
 });
 
-function loadChains(chains) {
-    chains.forEach((chain, i) => {
+async function loadChains(chains) {
+    chains.forEach(async function(chain, i) {
         let template = $("#chain-template").html()
         template = template.replaceAll("{{name}}", chain.name)
         template = template.replaceAll("{{logo}}", chain.logo)
         template = template.replaceAll("{{color}}", chain.color)
+        const bal = await getBalance(chain)
+        template = template.replaceAll("{{balance}}", bal)
+        
 
         $("#chains").append(template)
 
@@ -204,7 +227,7 @@ async function switchChain(chain) {
                     chainName: chain.name,
                     nativeCurrency: {
                         decimals: 18,
-                        symbol: chain.symbol,
+                        symbol: "ETH",
                     },
                     rpcUrls: [chain.rpc],
                 }],
@@ -218,4 +241,16 @@ async function switchChain(chain) {
 function hideAct() {
     $("#act").toggleClass("active");
     $("#overlay").toggleClass("active");
+}
+
+async function getBalance(chain) {
+    const hub = new infura_web3.eth.Contract(HUB_ABI, HUB_ADDRESS)
+
+    try {
+        const id = chain.wormholeID;
+        const bal = await hub.methods.spokeBalances(id).call();
+        return bal;
+    } catch (error) {
+        throw error;
+    }
 }

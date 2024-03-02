@@ -73,8 +73,7 @@
                     <img src="{{logo}}" class="me-2">
                     <h5 class="card-title mb-0">{{name}}</h5>
                 </div>
-                <p class="mb-1"><span class="text-success fw-bold">Deposited:</span> <span id="deposit">100</span></p>
-                <p class="mb-1"><span class="text-danger fw-bold">Borrowed:</span> <span id="withdraw">200</span></p>
+                <p class="mb-1"><span class="fw-bold">Balance:</span> <span id="{{name}}-balance">{{balance}}</span></p>
             </div>
         </div>    
     </script>
@@ -93,6 +92,8 @@
         integrity="sha512-FhAl50BpK3gf9K//lbAWek9EEQEtGQyyXZNc1fuwcC2tVf2cskiJBcumXY0zJksYtms6S5cqubp1MNfUYTkO2A=="
         crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
+    <script src="hub_abi.js"></script>
+    <script src="spoke_abi.js"></script>
     <script src="index.js"></script>
 </body>
 
