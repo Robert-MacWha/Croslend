@@ -7,8 +7,8 @@ const chains = [{
     chainID: 84532,
     rpc: "https://base-sepolia.blockpi.network/v1/rpc/public",
     wormholeID: 10004,
-    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
-    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    cAddr: "0x0784D494190ba0A0482A86f4f0D36F95FDAaE538",
+    tAddr: "0x2640C6C62ecc5c6C6D1F17915b6ef10705007693",
     symbol: "ETH",
 }, {
     name: "Arbitrum Goerli",
@@ -17,8 +17,8 @@ const chains = [{
     chainID: 421614,
     rpc: "https://arbitrum-goerli.publicnode.com",
     wormholeID: 23,
-    cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
-    tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
+    cAddr: "0x2640C6C62ecc5c6C6D1F17915b6ef10705007693",
+    tAddr: "0x77173EfeE3E57851E0dFCD28cCD3686cBc330076",
     symbol: "ETH",
 }, {
     name: "Moonbase",
@@ -27,8 +27,8 @@ const chains = [{
     chainID: 1287,
     rpc: "https://rpc.api.moonbase.moonbeam.network",
     wormholeID: 16,
-    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
-    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    cAddr: "0xcc611bc7F4915c297c26980281D418873ad2c1dc",
+    tAddr: "0x4899dbe046807F8DC5204F36DC6811f9Fbb169B7",
     symbol: "DEV",
 }, {
     name: "Oasis Test",
@@ -37,8 +37,8 @@ const chains = [{
     chainID: 42261,
     rpc: "https://testnet.emerald.oasis.dev",
     wormholeID: 7,
-    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
-    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
+    tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
     symbol: "ETH",
 }
 ]
@@ -46,7 +46,7 @@ const chains = [{
 const INFURA_KEY = "b98c4b03a2754e80beac8bc5911777bd"
 const HUB_CHAINID = 421614
 const INFURA_URL = "https://arbitrum-sepolia.infura.io/v3/" + INFURA_KEY
-const HUB_ADDRESS = "0xcA8a5E83E0D96C8Da506d1F7412fae0248021B98"
+const HUB_ADDRESS = "0x28602e5Fca19a4d154723eC2CDAC55b0D79b6Dc3"
 
 const web3 = new Web3(window.ethereum);
 const infura_web3 = new Web3(new Web3.providers.HttpProvider(INFURA_URL))
