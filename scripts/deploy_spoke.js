@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 async function main() {
-    const chainID = 23;
+    const chainID = 16;
 
     const configPath = "./wormhole_config.json";
     const configData = fs.readFileSync(configPath, "utf8");

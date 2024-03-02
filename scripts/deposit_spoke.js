@@ -1,7 +1,7 @@
 const fs = require("fs");
 
 async function main() {
-    const chainID = 10003;
+    const chainID = 16;
 
     const configPath = "./wormhole_config.json";
     const configData = fs.readFileSync(configPath, "utf8");
@@ -36,7 +36,7 @@ async function main() {
     const cost = await spokeContract.quoteCrossChainCost(hubChainID);
     console.log("Cost to cross chain:", cost.toString());
 
-    txn = await spokeContract.deposit(100000000000000000000n);
+    txn = await spokeContract.deposit(1000000000000000000n);
     await txn.wait();
     console.log("Deposited 100 tokens at", txn.hash)
 
