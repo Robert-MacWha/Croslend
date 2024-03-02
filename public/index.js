@@ -39,7 +39,7 @@ const chains = [{
     wormholeID: 7,
     cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
     tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
-    symbol: "ETH",
+    symbol: "ROSE",
 }
 ]
 
@@ -50,6 +50,9 @@ const HUB_ADDRESS = "0x28602e5Fca19a4d154723eC2CDAC55b0D79b6Dc3"
 
 const web3 = new Web3(window.ethereum);
 const infura_web3 = new Web3(new Web3.providers.HttpProvider(INFURA_URL))
+
+let borrowed = 0
+let deposited = 0
 
 $(document).ready(async function () {
     if (typeof window.ethereum === 'undefined') {
@@ -71,7 +74,6 @@ async function loadChains(chains) {
         const bal = parseInt(await getBalance(chain)) / 10 ** 18
         template = template.replaceAll("{{balance}}", bal)
 
-
         $("#chains").append(template)
 
         template = $("#chain-dropdown-template").html()
@@ -80,6 +82,17 @@ async function loadChains(chains) {
 
         $("#chains-dropdown").append(template)
     });
+
+    const account = await getAccount()
+    deposited = await getDeposited(account);
+    borrowed = await getBorrowed(account);
+
+    updateUserStat()
+}
+
+function updateUserStat() {
+    $("#user-deposited").html(parseInt(deposited) / 10 ** 18)
+    $("#user-borrowed").html(parseInt(borrowed) / 10 ** 18)
 }
 
 // returns the [labels, chainLiquidities]
@@ -97,8 +110,9 @@ async function loadChainLiquidities() {
             try {
                 const historicalBalances = await hub.methods.spokeBalancesHistorical(id, i).call();
                 data.push(parseInt(historicalBalances) / 10 ** 18)
+                console.log(id, historicalBalances)
 
-                
+
                 if (labels.length <= i) {
                     labels.push(i)
                 }
@@ -106,7 +120,7 @@ async function loadChainLiquidities() {
                 break
             }
         }
-        
+
         liquidities.push({
             name: chain.name,
             data: data,
@@ -196,20 +210,23 @@ async function deposit(e) {
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
-        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000" })
+        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000", type: '0x1' })
             .on("transactionHash", (hash) => {
                 appendLog("Approving deposit... tx = " + hash)
             })
             .on("receipt", () => {
                 appendLog("Approved")
 
-                spoke.methods.deposit(weiAmount).send({ from: account, gas: "300000" })
+                spoke.methods.deposit(weiAmount).send({ from: account, gas: "500000", type: '0x1' })
                     .on("transactionHash", (hash) => {
                         appendLog("Depositing... tx = " + hash)
                     })
                     .on("receipt", () => {
                         appendLog("Deposited")
                         $("#execute-btn").html("Executed")
+
+                        deposited += weiAmount
+                        updateUserStat()
                     })
                     .on("error", (err) => {
                         appendLog("Error sending deposit transaction: " + err)
@@ -220,7 +237,7 @@ async function deposit(e) {
             })
 
     } catch (err) {
-        console.log(err);
+        appendLog("Unknown error" + err)
     }
 }
 
@@ -239,27 +256,22 @@ async function withdraw(e) {
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
-        spoke.methods.requestWithdraw(weiAmount).send({ from: account, gas: "500000" })
+        spoke.methods.requestWithdraw(weiAmount).send({ from: account, gas: "500000", type: '0x1' })
             .on("transactionHash", (hash) => {
                 appendLog("Requesting withdraw... tx = " + hash)
             })
-            .on("receipt", () => {
+            .on("receipt", async () => {
                 appendLog("Requested. Waiting for bridged message...")
 
-                spoke.events.apporveWithdrawEvent({
-                    filter: {},
-                    fromBlock: "latest",
-                }, function (error, event) { console.log("event", event); })
-                    .on("connected", function (subscriptionId) {
-                        console.log("id", subscriptionId);
-                    })
-                    .on('data', function (event) {
-                        console.log("data", event); // Same results as the optional callback above
-                    })
-                    .on('changed', function (event) {
-                        console.log("changed", event)
-                    })
-                    .on('error', console.error);
+                // Hack - it takes about 1 minute for the borrowed tokens to be recieved.  Wait that long since I can't listen
+                // to events because infura doesn't support
+                await new Promise(r => setTimeout(r, 10_000));
+                appendLog("Approval recieved, tokens withdrawn")
+                $("#execute-btn").html("Executed")
+
+                deposited -= weiAmount
+                updateUserStat()
+
             })
     } catch (err) {
         console.log(err)
@@ -272,8 +284,35 @@ async function borrow(e) {
     let amount = $("#act #amount").val()
     let chainIndex = $("#act #chains-dropdown").val()
     let chain = chains[chainIndex]
+    const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr)
 
-    await switchChain(chain)
+    try {
+        await switchChain(chain)
+        appendLog("Selected chain: " + chain.name)
+        
+        const account = await getAccount()
+        const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
+
+        spoke.methods.requestBorrow(weiAmount).send({ from: account, gas: "500000", type: '0x1' })
+            .on("transactionHash", (hash) => {
+                appendLog("Requesting borrow... tx = " + hash)
+            })
+            .on("receipt", async () => {
+                appendLog("Requested. Waiting for bridged message...")
+
+                // Hack - it takes about 1 minute for the borrowed tokens to be recieved.  Wait that long since I can't listen
+                // to events because infura doesn't support
+                await new Promise(r => setTimeout(r, 10_000));
+                appendLog("Approval recieved, tokens borrowed")
+                $("#execute-btn").html("Executed")
+
+                borrowed += weiAmount
+                updateUserStat()
+
+            })
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 async function repay(e) {
@@ -292,20 +331,23 @@ async function repay(e) {
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
-        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000" })
+        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000", type: '0x1' })
             .on("transactionHash", (hash) => {
                 appendLog("Approving Repay... tx = " + hash)
             })
             .on("receipt", () => {
                 appendLog("Approved")
 
-                spoke.methods.repay(weiAmount).send({ from: account, gas: "300000" })
+                spoke.methods.repayBorrow(weiAmount).send({ from: account, gas: "300000", type: '0x1' })
                     .on("transactionHash", (hash) => {
                         appendLog("Repaying... tx = " + hash)
                     })
                     .on("receipt", () => {
                         appendLog("Repayed")
                         $("#execute-btn").html("Executed")
+
+                        borrowed -= weiAmount
+                        updateUserStat()
                     })
                     .on("error", (err) => {
                         appendLog("Error sending repay transaction: " + err)
@@ -315,7 +357,7 @@ async function repay(e) {
                 appendLog("Error sending approve transaction: " + err)
             })
     } catch (err) {
-        console.log(err);
+        appendLog("Unknown error" + err)
     }
 }
 
@@ -375,6 +417,28 @@ async function getBalance(chain) {
         const id = chain.wormholeID;
         const bal = await hub.methods.spokeBalances(id).call();
         return bal;
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function getDeposited(user) {
+    const hub = new infura_web3.eth.Contract(HUB_ABI, HUB_ADDRESS)
+
+    try {
+        const dep = await hub.methods.deposits(user).call();
+        return dep;
+    } catch (error) {
+        throw error;
+    }
+}
+
+async function getBorrowed(user) {
+    const hub = new infura_web3.eth.Contract(HUB_ABI, HUB_ADDRESS)
+
+    try {
+        const bor = await hub.methods.borrows(user).call();
+        return bor;
     } catch (error) {
         throw error;
     }

@@ -20,13 +20,18 @@
         <div class="mt-5"></div>
 
         <h1>Croslend</h1>
-        <p>Lorem ipsum dolor sit amet consectetur adipisicing elit. Repudiandae provident cum natus mollitia, tempore
-            perspiciatis minima? Ex consequatur fugit perferendis atque veniam expedita maxime! Dicta?</p>
-        <div class="actions d-flex">
-            <button onClick="showDeposit()" class="btn btn-secondary me-3">Deposit</button>
-            <button onClick="showWithdraw()" class="btn btn-secondary me-3">Withdraw</button>
-            <button onClick="showBorrow()" class="btn btn-secondary me-3">Borrow</button>
-            <button onClick="showRepay()" class="btn btn-secondary me-3">Repay</button>
+        <p style="text-align: justify;">CrosLend innovates DeFi by offering a cross-chain lending and borrowing protocol, enhancing interoperability and liquidity across blockchains. It allows users to transact with assets across different chains seamlessly, broadening access and improving capital efficiency. For lenders, it provides greater yield opportunities, while borrowers gain more access to funds</p>
+        <div class="actions d-flex justify-content-between">
+            <div class="">
+                <button onClick="showDeposit()" class="btn btn-secondary me-3">Deposit</button>
+                <button onClick="showWithdraw()" class="btn btn-secondary me-3">Withdraw</button>
+                <button onClick="showBorrow()" class="btn btn-secondary me-3">Borrow</button>
+                <button onClick="showRepay()" class="btn btn-secondary me-3">Repay</button>
+            </div>
+            <div class="d-flex">
+                <p class="me-3">Deposited: <span id="user-deposited"></span></p>
+                <p>Borrowed: <span id="user-borrowed"></span></p>
+            </div>
         </div>
         <div class="mb-5"></div>
 
