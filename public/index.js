@@ -1,34 +1,38 @@
 // https://altcoinsbox.com
 // https://chainlist.org
 const chains = [{
-        name: "Base Sepolia",
-        logo: "img/base.svg",
-        color: "rgb(0, 0, 255)",
-        chainID: 84532,
-        rpc: "https://base-sepolia.blockpi.network/v1/rpc/public",
-        wormholeID: 10004,
-    }, {
-        name: "Arbitrum Goreli",
-        logo: "img/arbitrum.svg",
-        color: "rgb(50, 60, 150)",
-        chainID: 421614,
-        rpc: "https://arbitrum-goerli.publicnode.com",
-        wormholeID: 23,
-    }, {
-        name: "Moonbase",
-        logo: "img/moonbase.svg",
-        color: "rgb(200, 50, 200)",
-        chainID: 0,
-        rpc: "https://rpc.testnet.moonbeam.network",
-        wormholeID: 16,
-    }, {
-        name: "Oasis Test",
-        logo: "img/oasis.svg",
-        color: "rgb(150, 200, 250)",
-        chainID: 0,
-        rpc: "https://testnet.emerald.oasis.dev",
-        wormholeID: 7,
-    }
+    name: "Base Sepolia",
+    logo: "img/base.svg",
+    color: "rgb(0, 0, 255)",
+    chainID: 84532,
+    rpc: "https://base-sepolia.blockpi.network/v1/rpc/public",
+    wormholeID: 10004,
+    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+}, {
+    name: "Arbitrum Goreli",
+    logo: "img/arbitrum.svg",
+    color: "rgb(50, 60, 150)",
+    chainID: 421614,
+    rpc: "https://arbitrum-goerli.publicnode.com",
+    wormholeID: 23,
+    cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
+}, {
+    name: "Moonbase",
+    logo: "img/moonbase.svg",
+    color: "rgb(200, 50, 200)",
+    chainID: 1287,
+    rpc: "https://rpc.testnet.moonbeam.network",
+    wormholeID: 16,
+    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+}, {
+    name: "Oasis Test",
+    logo: "img/oasis.svg",
+    color: "rgb(150, 200, 250)",
+    chainID: 42261,
+    rpc: "https://testnet.emerald.oasis.dev",
+    wormholeID: 7,
+    cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+}
     // }, {
     //     name: "Linea Test",
     //     logo: "img/linea.svg",
@@ -47,7 +51,7 @@ const HUB_ADDRESS = "0xcA8a5E83E0D96C8Da506d1F7412fae0248021B98"
 const web3 = new Web3(window.ethereum);
 const infura_web3 = new Web3(new Web3.providers.HttpProvider(INFURA_URL))
 
-$(document).ready(async function() {
+$(document).ready(async function () {
     if (typeof window.ethereum === 'undefined') {
         alert("A wallet is required for this application.  Try installing metamask.")
     }
@@ -59,14 +63,14 @@ $(document).ready(async function() {
 });
 
 async function loadChains(chains) {
-    chains.forEach(async function(chain, i) {
+    chains.forEach(async function (chain, i) {
         let template = $("#chain-template").html()
         template = template.replaceAll("{{name}}", chain.name)
         template = template.replaceAll("{{logo}}", chain.logo)
         template = template.replaceAll("{{color}}", chain.color)
-        const bal = await getBalance(chain)
+        const bal = parseInt(await getBalance(chain)) / 10**18
         template = template.replaceAll("{{balance}}", bal)
-        
+
 
         $("#chains").append(template)
 
@@ -154,22 +158,23 @@ async function deposit(e) {
     let amount = $("#act #amount").val()
     let chainIndex = $("#act #chains-dropdown").val()
     let chain = chains[chainIndex]
+    const contract = new web3.eth.Contract(SPOKE_ABI, chain.cAddr);
 
-    await switchChain(chain)
-
+    try {
+        await switchChain(chain)
+        const account = await getAccount()
+        const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
+        const receipt = await contract.methods.deposit(weiAmount).send({ from: account });
+        console.log("receipt:", receipt)
+    } catch (err) {
+        console.log(err);
+    }
 
     hideAct()
 }
 
 async function withdraw(e) {
     e.preventDefault()
-
-    let amount = $("#act #amount").val()
-    let chainIndex = $("#act #chains-dropdown").val()
-    let chain = chains[chainIndex]
-
-    await switchChain(chain)
-
 
     hideAct()
 }
@@ -183,7 +188,7 @@ async function borrow(e) {
 
     await switchChain(chain)
 
-    
+
     hideAct()
 }
 
@@ -194,16 +199,27 @@ async function repay(e) {
     let chainIndex = $("#act #chains-dropdown").val()
     let chain = chains[chainIndex]
 
-    await switchChain(chain)
+    const contract = new web3.eth.Contract(SPOKE_ABI, chain.cAddr);
 
-    
+    try {
+        await switchChain(chain)
+        const account = await getAccount()
+        const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
+        const receipt = await contract.methods.repayBorrow(weiAmount).send({ from: account });
+        console.log("receipt:", receipt)
+    } catch (err) {
+        console.log(err);
+    }
+
+
     hideAct()
 }
 
 async function switchChain(chain) {
 
     const chainIDHex = "0x" + chain.chainID.toString(16)
-    
+    console.log(chain, chain.chainID);
+
     try {
         const isConnected = await web3.eth.getChainId() === chainIDHex
 
@@ -216,7 +232,7 @@ async function switchChain(chain) {
             method: 'wallet_switchEthereumChain',
             params: [{ chainId: chainIDHex }],
         });
-    } catch(err) {
+    } catch (err) {
         console.log("adding chain: ", chainIDHex);
 
         try {
@@ -232,10 +248,16 @@ async function switchChain(chain) {
                     rpcUrls: [chain.rpc],
                 }],
             });
-        } catch(err) {
+        } catch (err) {
             console.log("error adding chain: ", err)
         }
     }
+}
+
+async function getAccount() {
+    const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+    const account = accounts[0]; // Using the first account
+    return account
 }
 
 function hideAct() {
