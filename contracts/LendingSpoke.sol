@@ -6,7 +6,7 @@ import "./IWormholeRelayer.sol";
 import "./IWormholeReceiver.sol";
 
 contract LendingSpoke is IWormholeReceiver {
-    uint256 constant GAS_LIMIT = 100_000;
+    uint256 constant GAS_LIMIT = 500_000;
     IWormholeRelayer public immutable wormholeRelayer;
     uint16 spokeChainID;
     uint16 hubChainID;
@@ -118,32 +118,32 @@ contract LendingSpoke is IWormholeReceiver {
         );
     }
 
-    function withdraw() external {
-        require(approvedWithdraws[msg.sender] > 0, "No approved withdraws");
-        uint256 withdrawAmount = approvedWithdraws[msg.sender];
-        approvedWithdraws[msg.sender] = 0;
+    function withdraw(address sender) internal {
+        uint256 withdrawAmount = approvedWithdraws[sender];
+        approvedWithdraws[sender] = 0;
         
-        token.transfer(msg.sender, withdrawAmount);
+        token.transfer(sender, withdrawAmount);
     }
 
-    function borrow() external {
-        require(approvedBorrows[msg.sender] > 0, "No approved borrows");
-        uint256 borrowAmount = approvedBorrows[msg.sender];
-        approvedBorrows[msg.sender] = 0;
-        token.transfer(msg.sender, borrowAmount);
+    function borrow(address sender) internal {
+        require(approvedBorrows[sender] > 0, "No approved borrows");
+        uint256 borrowAmount = approvedBorrows[sender];
+        approvedBorrows[sender] = 0;
+        token.transfer(sender, borrowAmount);
     }
 
     event apporveWithdrawEvent(address user, uint256 amount);
     function approveWithdraw(address user, uint256 amount) internal {
         approvedWithdraws[user] = amount;
         emit apporveWithdrawEvent(user, amount);
+        withdraw(user);
     }
 
     event apporveBorrowEvent(address user, uint256 amount);
     function approveBorrow(address user, uint256 amount) internal {
         approvedBorrows[user] = amount;
-
         emit apporveBorrowEvent(user, amount);
+        borrow(user);
     }
 
     event bridgeToSpokeEvent(uint16 spokeID, address spokeAddr, uint256 amount);

@@ -94,5 +94,13 @@
     "tokenBridge": "0x88d8004A9BdbfD9D28090A02010C19897a29605c",
     "wormholeRelayer": "0x28D8F1Be96f97C1387e94A53e00eCcFb4E75175a",
     "wormhole": "0xc1C338397ffA53a2Eb12A7038b4eeb34791F8aCb"
+  },
+  {
+    "description": "Hedera",
+    "chainId": 333,
+    "rpc": "https://testnet.hashio.io/api",
+    "tokenBridge": "0xF890982f9310df57d00f659cf4fd87e65adEd8d7",
+    "wormholeRelayer": "0x28D8F1Be96f97C1387e94A53e00eCcFb4E75175a",
+    "wormhole": "0x706abc4E45D419950511e474C7B9Ed348A4a716c"
   }
 ]
