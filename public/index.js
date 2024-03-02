@@ -11,7 +11,7 @@ const chains = [{
     tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
     symbol: "ETH",
 }, {
-    name: "Arbitrum Goreli",
+    name: "Arbitrum Goerli",
     logo: "img/arbitrum.svg",
     color: "rgb(50, 60, 150)",
     chainID: 421614,
@@ -41,14 +41,6 @@ const chains = [{
     tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
     symbol: "ETH",
 }
-    // }, {
-    //     name: "Linea Test",
-    //     logo: "img/linea.svg",
-    //     color: "rgb(50, 200, 255)",
-    //     chainID: 59140,
-    //     rpc: "https://rpc.goerli.linea.build",
-    //     symbol: "ETH",
-    // },
 ]
 
 const INFURA_KEY = "b98c4b03a2754e80beac8bc5911777bd"
@@ -66,7 +58,7 @@ $(document).ready(async function () {
 
     await loadChains(chains);
 
-    const [labels, liquidities] = loadChainLiquidities()
+    const [labels, liquidities] = await loadChainLiquidities()
     loadChart(labels, liquidities);
 });
 
@@ -91,17 +83,40 @@ async function loadChains(chains) {
 }
 
 // returns the [labels, chainLiquidities]
-function loadChainLiquidities() {
+async function loadChainLiquidities() {
+    const hub = new infura_web3.eth.Contract(HUB_ABI, HUB_ADDRESS)
     let labels = []
     let liquidities = []
 
+    for (const chain of chains) {
+        const id = chain.wormholeID
+
+        data = []
+
+        for (let i = 0; i < 1000; i++) {
+            try {
+                const historicalBalances = await hub.methods.spokeBalancesHistorical(id, i).call();
+                data.push(parseInt(historicalBalances) / 10 ** 18)
+
+                
+                if (labels.length <= i) {
+                    labels.push(i)
+                }
+            } catch (err) {
+                break
+            }
+        }
+        
+        liquidities.push({
+            name: chain.name,
+            data: data,
+            color: chain.color,
+        })
+    }
+
     return [
-        ["1", "2", "3", "4", "5"],
-        [{
-            name: "Test",
-            data: [0.1, 0.2, 0.3, 0.2, 0.1],
-            color: "rgb(50, 200, 255)",
-        }]
+        labels,
+        liquidities
     ]
 }
 
@@ -174,7 +189,6 @@ async function deposit(e) {
     const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr)
     const erc = new web3.eth.Contract(ERC_ABI, chain.tAddr)
 
-
     try {
         await switchChain(chain)
         appendLog("Selected chain: " + chain.name)
@@ -195,6 +209,7 @@ async function deposit(e) {
                     })
                     .on("receipt", () => {
                         appendLog("Deposited")
+                        $("#execute-btn").html("Executed")
                     })
                     .on("error", (err) => {
                         appendLog("Error sending deposit transaction: " + err)
@@ -211,6 +226,44 @@ async function deposit(e) {
 
 async function withdraw(e) {
     e.preventDefault()
+
+    let amount = $("#act #amount").val()
+    let chainIndex = $("#act #chains-dropdown").val()
+    let chain = chains[chainIndex]
+    const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr)
+
+    try {
+        await switchChain(chain)
+        appendLog("Selected chain: " + chain.name)
+
+        const account = await getAccount()
+        const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
+
+        spoke.methods.requestWithdraw(weiAmount).send({ from: account, gas: "500000" })
+            .on("transactionHash", (hash) => {
+                appendLog("Requesting withdraw... tx = " + hash)
+            })
+            .on("receipt", () => {
+                appendLog("Requested. Waiting for bridged message...")
+
+                spoke.events.apporveWithdrawEvent({
+                    filter: {},
+                    fromBlock: "latest",
+                }, function (error, event) { console.log("event", event); })
+                    .on("connected", function (subscriptionId) {
+                        console.log("id", subscriptionId);
+                    })
+                    .on('data', function (event) {
+                        console.log("data", event); // Same results as the optional callback above
+                    })
+                    .on('changed', function (event) {
+                        console.log("changed", event)
+                    })
+                    .on('error', console.error);
+            })
+    } catch (err) {
+        console.log(err)
+    }
 }
 
 async function borrow(e) {
@@ -252,6 +305,7 @@ async function repay(e) {
                     })
                     .on("receipt", () => {
                         appendLog("Repayed")
+                        $("#execute-btn").html("Executed")
                     })
                     .on("error", (err) => {
                         appendLog("Error sending repay transaction: " + err)
@@ -343,6 +397,6 @@ function getPrettyTime() {
 
 function appendLog(log) {
     $("#logs").append(
-        "<p>" + getPrettyTime() + " - " + log + "</p>"
+        "<p><span class='fw-bold'>" + getPrettyTime() + "</span> - " + log + "</p>"
     )
 }
