@@ -164,7 +164,7 @@ async function deposit(e) {
         await switchChain(chain)
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
-        const receipt = await contract.methods.deposit(weiAmount).send({ from: account });
+        const receipt = await contract.methods.deposit(weiAmount).send({ from: account, gas: "200000" });
         console.log("receipt:", receipt)
     } catch (err) {
         console.log(err);
@@ -205,7 +205,7 @@ async function repay(e) {
         await switchChain(chain)
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
-        const receipt = await contract.methods.repayBorrow(weiAmount).send({ from: account });
+        const receipt = await contract.methods.repayBorrow(weiAmount).send({ from: account, gas: "200000" });
         console.log("receipt:", receipt)
     } catch (err) {
         console.log(err);
