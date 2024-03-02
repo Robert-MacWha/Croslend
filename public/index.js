@@ -9,6 +9,7 @@ const chains = [{
     wormholeID: 10004,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
     tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    symbol: "ETH",
 }, {
     name: "Arbitrum Goreli",
     logo: "img/arbitrum.svg",
@@ -18,15 +19,17 @@ const chains = [{
     wormholeID: 23,
     cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
     tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
+    symbol: "ETH",
 }, {
     name: "Moonbase",
     logo: "img/moonbase.svg",
     color: "rgb(200, 50, 200)",
     chainID: 1287,
-    rpc: "https://rpc.testnet.moonbeam.network",
+    rpc: "https://rpc.api.moonbase.moonbeam.network",
     wormholeID: 16,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
     tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    symbol: "DEV",
 }, {
     name: "Oasis Test",
     logo: "img/oasis.svg",
@@ -36,6 +39,7 @@ const chains = [{
     wormholeID: 7,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
     tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
+    symbol: "ETH",
 }
     // }, {
     //     name: "Linea Test",
@@ -72,7 +76,7 @@ async function loadChains(chains) {
         template = template.replaceAll("{{name}}", chain.name)
         template = template.replaceAll("{{logo}}", chain.logo)
         template = template.replaceAll("{{color}}", chain.color)
-        const bal = parseInt(await getBalance(chain)) / 10**18
+        const bal = parseInt(await getBalance(chain)) / 10 ** 18
         template = template.replaceAll("{{balance}}", bal)
 
 
@@ -156,6 +160,7 @@ function showAct() {
     $("#act").toggleClass("active");
     $("#overlay").toggleClass("active");
     $("#execute-btn").html("Execute").prop("disabled", false);
+    $("#logs").html("")
 }
 
 async function deposit(e) {
@@ -169,28 +174,43 @@ async function deposit(e) {
     const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr)
     const erc = new web3.eth.Contract(ERC_ABI, chain.tAddr)
 
+
     try {
         await switchChain(chain)
+        appendLog("Selected chain: " + chain.name)
+
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
-        const approveReceipt = await erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "200000" })
-        await new Promise(r => setTimeout(r, 5000));
-        const depositReceipt = await spoke.methods.deposit(weiAmount).send({ from: account, gas: "200000" })
+        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000" })
+            .on("transactionHash", (hash) => {
+                appendLog("Approving deposit... tx = " + hash)
+            })
+            .on("receipt", () => {
+                appendLog("Approved")
 
-        console.log("approve:", approveReceipt)
-        console.log("deposit:", depositReceipt)
+                spoke.methods.deposit(weiAmount).send({ from: account, gas: "300000" })
+                    .on("transactionHash", (hash) => {
+                        appendLog("Depositing... tx = " + hash)
+                    })
+                    .on("receipt", () => {
+                        appendLog("Deposited")
+                    })
+                    .on("error", (err) => {
+                        appendLog("Error sending deposit transaction: " + err)
+                    })
+            })
+            .on("error", (err) => {
+                appendLog("Error sending approve transaction: " + err)
+            })
+
     } catch (err) {
         console.log(err);
     }
-
-    hideAct()
 }
 
 async function withdraw(e) {
     e.preventDefault()
-
-    hideAct()
 }
 
 async function borrow(e) {
@@ -201,9 +221,6 @@ async function borrow(e) {
     let chain = chains[chainIndex]
 
     await switchChain(chain)
-
-
-    hideAct()
 }
 
 async function repay(e) {
@@ -218,25 +235,37 @@ async function repay(e) {
 
     try {
         await switchChain(chain)
+        appendLog("Selected chain: " + chain.name)
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
-        const approveReceipt = await erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "200000" })
-        await new Promise(r => setTimeout(r, 5000));
-        const repayReceipt = await spoke.methods.repayBorrow(weiAmount).send({ from: account, gas: "200000" });
+        erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "300000" })
+            .on("transactionHash", (hash) => {
+                appendLog("Approving Repay... tx = " + hash)
+            })
+            .on("receipt", () => {
+                appendLog("Approved")
 
-        console.log("approve:", approveReceipt)
-        console.log("repay:", repayReceipt)
+                spoke.methods.repay(weiAmount).send({ from: account, gas: "300000" })
+                    .on("transactionHash", (hash) => {
+                        appendLog("Repaying... tx = " + hash)
+                    })
+                    .on("receipt", () => {
+                        appendLog("Repayed")
+                    })
+                    .on("error", (err) => {
+                        appendLog("Error sending repay transaction: " + err)
+                    })
+            })
+            .on("error", (err) => {
+                appendLog("Error sending approve transaction: " + err)
+            })
     } catch (err) {
         console.log(err);
     }
-
-
-    hideAct()
 }
 
 async function switchChain(chain) {
-
     const chainIDHex = "0x" + chain.chainID.toString(16)
     console.log(chain, chain.chainID);
 
@@ -263,7 +292,7 @@ async function switchChain(chain) {
                     chainName: chain.name,
                     nativeCurrency: {
                         decimals: 18,
-                        symbol: "ETH",
+                        symbol: chain.symbol,
                     },
                     rpcUrls: [chain.rpc],
                 }],
@@ -295,4 +324,25 @@ async function getBalance(chain) {
     } catch (error) {
         throw error;
     }
+}
+
+function getPrettyTime() {
+    const now = new Date();
+    let hours = now.getHours();
+    let minutes = now.getMinutes();
+    let seconds = now.getSeconds();
+    const ampm = hours >= 12 ? 'PM' : 'AM';
+
+    hours = hours % 12;
+    hours = hours ? hours : 12; // the hour '0' should be '12'
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+
+    const strTime = hours + ':' + minutes + ":" + seconds + ' ' + ampm;
+    return strTime;
+}
+
+function appendLog(log) {
+    $("#logs").append(
+        "<p>" + getPrettyTime() + " - " + log + "</p>"
+    )
 }
