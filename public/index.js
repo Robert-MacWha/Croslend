@@ -213,14 +213,20 @@ async function repay(e) {
     let chainIndex = $("#act #chains-dropdown").val()
     let chain = chains[chainIndex]
 
-    const contract = new web3.eth.Contract(SPOKE_ABI, chain.cAddr);
+    const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr);
+    const erc = new web3.eth.Contract(ERC_ABI, chain.tAddr)
 
     try {
         await switchChain(chain)
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
-        const receipt = await contract.methods.repayBorrow(weiAmount).send({ from: account, gas: "200000" });
-        console.log("receipt:", receipt)
+
+        const approveReceipt = await erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "200000" })
+        await new Promise(r => setTimeout(r, 5000));
+        const repayReceipt = await spoke.methods.repayBorrow(weiAmount).send({ from: account, gas: "200000" });
+
+        console.log("approve:", approveReceipt)
+        console.log("repay:", repayReceipt)
     } catch (err) {
         console.log(err);
     }
