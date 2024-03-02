@@ -8,6 +8,7 @@ const chains = [{
     rpc: "https://base-sepolia.blockpi.network/v1/rpc/public",
     wormholeID: 10004,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
 }, {
     name: "Arbitrum Goreli",
     logo: "img/arbitrum.svg",
@@ -16,6 +17,7 @@ const chains = [{
     rpc: "https://arbitrum-goerli.publicnode.com",
     wormholeID: 23,
     cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
+    tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
 }, {
     name: "Moonbase",
     logo: "img/moonbase.svg",
@@ -24,6 +26,7 @@ const chains = [{
     rpc: "https://rpc.testnet.moonbeam.network",
     wormholeID: 16,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
 }, {
     name: "Oasis Test",
     logo: "img/oasis.svg",
@@ -32,6 +35,7 @@ const chains = [{
     rpc: "https://testnet.emerald.oasis.dev",
     wormholeID: 7,
     cAddr: "0x8f973e6291701D0A334cAC146D1C9f0Bd7bA3da7",
+    tAddr: "0xfB84746E9A350739DEE3Fd2555171C09a48c522E",
 }
     // }, {
     //     name: "Linea Test",
@@ -121,51 +125,61 @@ function loadChart(labels, chainLiquidities) {
 }
 
 function showDeposit() {
-    $("#act").toggleClass("active");
-    $("#overlay").toggleClass("active");
+    showAct()
 
     $("#act h5").html("Deposit")
     $("#act #execute-btn").html("Deposit").attr('onClick', 'deposit(event);');
 }
 
 function showWithdraw() {
-    $("#act").toggleClass("active");
-    $("#overlay").toggleClass("active");
+    showAct()
 
     $("#act h5").html("Withdraw")
     $("#act #execute-btn").html("Withdraw").attr('onClick', 'withdraw(event);');
 }
 
 function showBorrow() {
-    $("#act").toggleClass("active");
-    $("#overlay").toggleClass("active");
+    showAct()
 
     $("#act h5").html("Borrow")
     $("#act #execute-btn").html("Borrow").attr('onClick', 'borrow(event);');
 }
 
 function showRepay() {
-    $("#act").toggleClass("active");
-    $("#overlay").toggleClass("active");
+    showAct()
 
     $("#act h5").html("Repay")
     $("#act #execute-btn").html("Repay").attr('onClick', 'repay(event);');
 }
 
+function showAct() {
+    $("#act").toggleClass("active");
+    $("#overlay").toggleClass("active");
+    $("#execute-btn").html("Execute").prop("disabled", false);
+}
+
 async function deposit(e) {
     e.preventDefault()
+
+    $("#execute-btn").html("Executing...").prop("disabled", true);
 
     let amount = $("#act #amount").val()
     let chainIndex = $("#act #chains-dropdown").val()
     let chain = chains[chainIndex]
-    const contract = new web3.eth.Contract(SPOKE_ABI, chain.cAddr);
+    const spoke = new web3.eth.Contract(SPOKE_ABI, chain.cAddr)
+    const erc = new web3.eth.Contract(ERC_ABI, chain.tAddr)
 
     try {
         await switchChain(chain)
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
-        const receipt = await contract.methods.deposit(weiAmount).send({ from: account, gas: "200000" });
-        console.log("receipt:", receipt)
+
+        const approveReceipt = await erc.methods.approve(chain.cAddr, weiAmount).send({ from: account, gas: "200000" })
+        await new Promise(r => setTimeout(r, 5000));
+        const depositReceipt = await spoke.methods.deposit(weiAmount).send({ from: account, gas: "200000" })
+
+        console.log("approve:", approveReceipt)
+        console.log("deposit:", depositReceipt)
     } catch (err) {
         console.log(err);
     }
