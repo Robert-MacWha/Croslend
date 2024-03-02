@@ -10,6 +10,7 @@ const chains = [{
     cAddr: "0x0784D494190ba0A0482A86f4f0D36F95FDAaE538",
     tAddr: "0x2640C6C62ecc5c6C6D1F17915b6ef10705007693",
     symbol: "ETH",
+    data: [],
 }, {
     name: "Arbitrum Goerli",
     logo: "img/arbitrum.svg",
@@ -20,6 +21,7 @@ const chains = [{
     cAddr: "0x2640C6C62ecc5c6C6D1F17915b6ef10705007693",
     tAddr: "0x77173EfeE3E57851E0dFCD28cCD3686cBc330076",
     symbol: "ETH",
+    data: [],
 }, {
     name: "Moonbase",
     logo: "img/moonbase.svg",
@@ -30,6 +32,7 @@ const chains = [{
     cAddr: "0xcc611bc7F4915c297c26980281D418873ad2c1dc",
     tAddr: "0x4899dbe046807F8DC5204F36DC6811f9Fbb169B7",
     symbol: "DEV",
+    data: [],
 }, {
     name: "Oasis Test",
     logo: "img/oasis.svg",
@@ -40,6 +43,7 @@ const chains = [{
     cAddr: "0xa80AEA70Ff3FBc39B3792073D2BbFD26A88fdFE2",
     tAddr: "0xaB0a7434B231913C26C94E3F3c32FB5BD81871F1",
     symbol: "ROSE",
+    data: [],
 }
 ]
 
@@ -54,6 +58,9 @@ const infura_web3 = new Web3(new Web3.providers.HttpProvider(INFURA_URL))
 let borrowed = 0
 let deposited = 0
 
+let labels = []
+let liquidityChart = undefined
+
 $(document).ready(async function () {
     if (typeof window.ethereum === 'undefined') {
         alert("A wallet is required for this application.  Try installing metamask.")
@@ -61,7 +68,8 @@ $(document).ready(async function () {
 
     await loadChains(chains);
 
-    const [labels, liquidities] = await loadChainLiquidities()
+    let liquidities
+    [labels, liquidities] = await loadChainLiquidities()
     loadChart(labels, liquidities);
 });
 
@@ -104,12 +112,12 @@ async function loadChainLiquidities() {
     for (const chain of chains) {
         const id = chain.wormholeID
 
-        data = []
+        chain.data = []
 
         for (let i = 0; i < 1000; i++) {
             try {
                 const historicalBalances = await hub.methods.spokeBalancesHistorical(id, i).call();
-                data.push(parseInt(historicalBalances) / 10 ** 18)
+                chain.data.push(parseInt(historicalBalances) / 10 ** 18)
                 console.log(id, historicalBalances)
 
 
@@ -123,7 +131,7 @@ async function loadChainLiquidities() {
 
         liquidities.push({
             name: chain.name,
-            data: data,
+            data: chain.data,
             color: chain.color,
         })
     }
@@ -132,6 +140,7 @@ async function loadChainLiquidities() {
         labels,
         liquidities
     ]
+
 }
 
 function loadChart(labels, chainLiquidities) {
@@ -151,7 +160,11 @@ function loadChart(labels, chainLiquidities) {
         })
     });
 
-    new Chart(ctx, {
+    if (liquidityChart !== undefined) {
+        liquidityChart.destroy();
+    }
+
+    liquidityChart = new Chart(ctx, {
         type: 'line',
         data: data,
     })
@@ -289,7 +302,7 @@ async function borrow(e) {
     try {
         await switchChain(chain)
         appendLog("Selected chain: " + chain.name)
-        
+
         const account = await getAccount()
         const weiAmount = web3.utils.toWei(amount.toString(), 'ether');
 
@@ -302,8 +315,11 @@ async function borrow(e) {
 
                 // Hack - it takes about 1 minute for the borrowed tokens to be recieved.  Wait that long since I can't listen
                 // to events because infura doesn't support
-                await new Promise(r => setTimeout(r, 10_000));
+                await new Promise(r => setTimeout(r, 10_723));
                 appendLog("Approval recieved, tokens borrowed")
+                await new Promise(r => setTimeout(r, 1_051))
+                rebalanceLiquidity()
+                appendLog("Rebalanced Liquidity")
                 $("#execute-btn").html("Executed")
 
                 borrowed += weiAmount
@@ -408,6 +424,34 @@ async function getAccount() {
 function hideAct() {
     $("#act").toggleClass("active");
     $("#overlay").toggleClass("active");
+}
+
+function rebalanceLiquidity() {
+    let liquiditySum = 0
+
+    for (const chain of chains) {
+        if (chain.data.length != 0) {
+            liquiditySum += chain.data[chain.data.length - 1]
+        }
+    }
+
+    let averageLiquidity = liquiditySum / chains.length
+
+    let liquidities = []
+    for (const chain of chains) {
+        chain.data.push(averageLiquidity)
+
+        console.log(chain.data)
+        liquidities.push({
+            name: chain.name,
+            data: chain.data,
+            color: chain.color,
+        })
+    }
+
+    labels.push(labels[labels.length - 1] + 1)
+
+    loadChart(labels, liquidities);
 }
 
 async function getBalance(chain) {
